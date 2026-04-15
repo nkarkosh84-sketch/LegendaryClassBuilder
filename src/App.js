@@ -159,7 +159,7 @@ export default function App() {
         result[cls][skill] = {};
       }
 
-      if (level > 0) {
+      if (!Number.isNaN(level)) {
         result[cls][skill][level] = cap;
       }
     });
@@ -200,10 +200,14 @@ export default function App() {
         }
         if (!allowedCompetencies.has(skill.competency)) return;
 
-        const cap = skillCaps[clsName]?.[skill.name]?.[selectedLevel];
-        if (!cap) return;
-
-        const effectiveLevel = cap;
+        let effectiveLevel;
+        if (skill.competency === "Special") {
+          effectiveLevel = skill.level;
+        } else {
+          const cap = skillCaps[clsName]?.[skill.name]?.[selectedLevel];
+          if (!cap) return;
+          effectiveLevel = cap;
+        }
 
         const existing = combinedSkills[skill.name];
         if (!existing || effectiveLevel > existing.level) {
@@ -321,7 +325,9 @@ export default function App() {
                           }}
                         >
                           <span>{s.name}</span>
-                          <span style={{ minWidth: "36px", textAlign: "right", fontWeight: "bold" }}>{s.level}</span>
+                          {comp !== "Special" && (
+                            <span style={{ minWidth: "36px", textAlign: "right", fontWeight: "bold" }}>{s.level}</span>
+                          )}
                         </li>
                       ))}
                   </ul>

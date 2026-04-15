@@ -1,10 +1,13 @@
 import React, { useEffect, useState } from "react";
 
 const SHEET_URL = "https://opensheet.elk.sh/1za0-DAyxcbcavywbquHzaWm8BKLBU_2lO9Omw8CEqYY/JSON";
+const SKILL_LEVELS_URL = "https://opensheet.elk.sh/1za0-DAyxcbcavywbquHzaWm8BKLBU_2lO9Omw8CEqYY/SkillLevels";
 
 export default function App() {
   const [classes, setClasses] = useState({});
+  const [skillCaps, setSkillCaps] = useState({});
   const [selected, setSelected] = useState([]);
+  const [selectedLevel, setSelectedLevel] = useState(60);
   const [lastUpdated, setLastUpdated] = useState(null);
   const [hoveredClass, setHoveredClass] = useState(null);
 
@@ -48,20 +51,36 @@ export default function App() {
       .then(res => res.json())
       .then(rows => {
         setClasses(transformData(rows));
+      })
+      .catch(err => {
+        console.error("Failed to fetch class data", err);
+      });
+    fetch(SKILL_LEVELS_URL)
+      .then(res => res.json())
+      .then(rows => {
+        setSkillCaps(transformSkillCaps(rows));
         setLastUpdated(new Date().toLocaleTimeString());
       })
       .catch(err => {
-        console.error("Failed to fetch data", err);
+        console.error("Failed to fetch skill levels data", err);
       });
     const timer = setInterval(() => {
       fetch(SHEET_URL)
         .then(res => res.json())
         .then(rows => {
           setClasses(transformData(rows));
+        })
+        .catch(err => {
+          console.error("Failed to fetch class data", err);
+        });
+      fetch(SKILL_LEVELS_URL)
+        .then(res => res.json())
+        .then(rows => {
+          setSkillCaps(transformSkillCaps(rows));
           setLastUpdated(new Date().toLocaleTimeString());
         })
         .catch(err => {
-          console.error("Failed to fetch data", err);
+          console.error("Failed to fetch skill levels data", err);
         });
     }, 60000);
     return () => clearInterval(timer);
@@ -72,10 +91,18 @@ export default function App() {
       .then(res => res.json())
       .then(rows => {
         setClasses(transformData(rows));
+      })
+      .catch(err => {
+        console.error("Failed to fetch class data", err);
+      });
+    fetch(SKILL_LEVELS_URL)
+      .then(res => res.json())
+      .then(rows => {
+        setSkillCaps(transformSkillCaps(rows));
         setLastUpdated(new Date().toLocaleTimeString());
       })
       .catch(err => {
-        console.error("Failed to fetch data", err);
+        console.error("Failed to fetch skill levels data", err);
       });
   };
 
@@ -116,6 +143,29 @@ export default function App() {
     return result;
   }
 
+  // Transform skill levels data
+  function transformSkillCaps(rows) {
+    const result = {};
+    rows.forEach(row => {
+      const cls = row.Class;
+      const skill = row.Skill;
+      const level = Number(row.Level);
+      const cap = Number(row["Skill Cap"]);
+
+      if (!result[cls]) {
+        result[cls] = {};
+      }
+      if (!result[cls][skill]) {
+        result[cls][skill] = {};
+      }
+
+      if (level > 0) {
+        result[cls][skill][level] = cap;
+      }
+    });
+    return result;
+  }
+
   // Toggle selection (max 3 classes)
   function toggleClass(cls) {
     if (selected.includes(cls)) {
@@ -128,7 +178,7 @@ export default function App() {
   // Analyze selected combo
   function analyze() {
     const combinedSkills = {};
-    const allowedCompetencies = new Set(["Melee", "Ability", "Defense"]);
+    const allowedCompetencies = new Set(["Melee", "Ability", "Defense", "Special"]);
     const allSpellNames = new Set();
     const selectedSpellNames = new Set();
 
@@ -150,11 +200,16 @@ export default function App() {
         }
         if (!allowedCompetencies.has(skill.competency)) return;
 
+        const cap = skillCaps[clsName]?.[skill.name]?.[selectedLevel];
+        if (!cap) return;
+
+        const effectiveLevel = cap;
+
         const existing = combinedSkills[skill.name];
-        if (!existing || skill.level > existing.level) {
+        if (!existing || effectiveLevel > existing.level) {
           combinedSkills[skill.name] = {
             name: skill.name,
-            level: skill.level,
+            level: effectiveLevel,
             competency: skill.competency
           };
         }
@@ -164,7 +219,8 @@ export default function App() {
     const groupedSkills = {
       Melee: [],
       Defense: [],
-      Ability: []
+      Ability: [],
+      Special: []
     };
 
     Object.values(combinedSkills).forEach(skill => {
@@ -196,6 +252,17 @@ export default function App() {
         <div style={{ maxWidth: "1100px", width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <h1 style={{ fontFamily: "Cinzel", color: "#FFD700" }}>Legendary Class Builder</h1>
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "5px" }}>
+              <label style={{ fontSize: "0.9rem", color: "#aaa" }}>Character Level: {selectedLevel}</label>
+              <input
+                type="range"
+                min="1"
+                max="60"
+                value={selectedLevel}
+                onChange={(e) => setSelectedLevel(Number(e.target.value))}
+                style={{ width: "120px" }}
+              />
+            </div>
             <button onClick={fetchSheetData} style={buttonBaseStyle}>Refresh Data</button>
             {lastUpdated && <span style={{ color: "#aaa", fontSize: "0.95rem" }}>Last refresh: {lastUpdated}</span>}
           </div>
@@ -203,7 +270,7 @@ export default function App() {
       </div>
 
       <div style={{ display: "flex", justifyContent: "center", marginBottom: "20px" }}>
-        <div style={{ maxWidth: "1100px", width: "100%", backgroundColor: "#1e293b", padding: "20px", borderRadius: "8px", border: "1px solid #334155" }}>
+        <div style={{ maxWidth: "1100px", width: "100%", backgroundColor: "#1e293b", padding: "5px 20px", borderRadius: "8px", border: "1px solid #334155" }}>
           <h2>Select up to 3 classes</h2>
 
           <div>
@@ -222,12 +289,10 @@ export default function App() {
         </div>
       </div>
 
-      <hr />
-
       <div style={{ display: "flex", gap: "40px", alignItems: "flex-start", justifyContent: "center", maxWidth: "1100px", margin: "0 auto", backgroundColor: "#1e293b", padding: "20px", borderRadius: "8px", border: "1px solid #334155" }}>
         <div style={{ flex: 1, minWidth: "320px" }}>
           <h2>Max Skill Levels</h2>
-          {['Melee', 'Defense', 'Ability'].map(comp => (
+          {['Melee', 'Defense', 'Ability', 'Special'].map(comp => (
             <div
               key={comp}
               style={{
@@ -240,18 +305,33 @@ export default function App() {
               <div style={{ minWidth: "90px", fontWeight: "bold" }}>{comp}</div>
               <div style={{ flex: 1 }}>
                 {analysis.groupedSkills[comp].length > 0 ? (
-                  <ul style={{ margin: 0, paddingLeft: "20px" }}>
+                  <ul style={{ margin: 0, paddingLeft: "0" }}>
                     {analysis.groupedSkills[comp]
                       .filter(s => s.level > 0)
                       .map((s, i) => (
-                        <li key={i}>
-                          {s.name} - {s.level}
+                        <li
+                          key={i}
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            gap: "12px",
+                            padding: "6px 0",
+                            borderBottom: "1px solid #334155",
+                            listStyle: "none"
+                          }}
+                        >
+                          <span>{s.name}</span>
+                          <span style={{ minWidth: "36px", textAlign: "right", fontWeight: "bold" }}>{s.level}</span>
                         </li>
                       ))}
                   </ul>
                 ) : (
                   <p style={{ margin: 0 }}>
-                    {selected.length === 0 ? "No Class Selected" : `No ${comp} skills selected.`}
+                    {selected.length === 0
+                      ? "No Class Selected"
+                      : comp === "Special"
+                      ? "No Specials Available."
+                      : `No ${comp} skills selected.`}
                   </p>
                 )}
               </div>

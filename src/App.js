@@ -43,7 +43,30 @@ export default function App() {
     };
   };
 
-  // Fetch data
+  useEffect(() => {
+    fetch(SHEET_URL)
+      .then(res => res.json())
+      .then(rows => {
+        setClasses(transformData(rows));
+        setLastUpdated(new Date().toLocaleTimeString());
+      })
+      .catch(err => {
+        console.error("Failed to fetch data", err);
+      });
+    const timer = setInterval(() => {
+      fetch(SHEET_URL)
+        .then(res => res.json())
+        .then(rows => {
+          setClasses(transformData(rows));
+          setLastUpdated(new Date().toLocaleTimeString());
+        })
+        .catch(err => {
+          console.error("Failed to fetch data", err);
+        });
+    }, 60000);
+    return () => clearInterval(timer);
+  }, []);
+
   const fetchSheetData = () => {
     fetch(SHEET_URL)
       .then(res => res.json())
@@ -51,14 +74,10 @@ export default function App() {
         setClasses(transformData(rows));
         setLastUpdated(new Date().toLocaleTimeString());
       })
-      .catch(console.error);
+      .catch(err => {
+        console.error("Failed to fetch data", err);
+      });
   };
-
-  useEffect(() => {
-    fetchSheetData();
-    const timer = setInterval(fetchSheetData, 60000);
-    return () => clearInterval(timer);
-  }, []);
 
   // Transform sheet → structured class data
   function transformData(rows) {
@@ -188,7 +207,7 @@ export default function App() {
           <h2>Select up to 3 classes</h2>
 
           <div>
-            {Object.keys(classes).map(cls => (
+            {classes && Object.keys(classes).map(cls => (
               <button
                 key={cls}
                 onClick={() => toggleClass(cls)}

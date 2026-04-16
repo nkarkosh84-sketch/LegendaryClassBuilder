@@ -2,10 +2,12 @@ import React, { useEffect, useState } from "react";
 
 const SHEET_URL = "https://opensheet.elk.sh/1za0-DAyxcbcavywbquHzaWm8BKLBU_2lO9Omw8CEqYY/JSON";
 const SKILL_LEVELS_URL = "https://opensheet.elk.sh/1za0-DAyxcbcavywbquHzaWm8BKLBU_2lO9Omw8CEqYY/SkillLevels";
+const CLASS_URL = "https://opensheet.elk.sh/1za0-DAyxcbcavywbquHzaWm8BKLBU_2lO9Omw8CEqYY/Class";
 
 export default function App() {
   const [classes, setClasses] = useState({});
   const [skillCaps, setSkillCaps] = useState({});
+  const [classInfo, setClassInfo] = useState({});
   const [selected, setSelected] = useState([]);
   const [selectedLevel, setSelectedLevel] = useState(60);
   const [lastUpdated, setLastUpdated] = useState(null);
@@ -59,10 +61,18 @@ export default function App() {
       .then(res => res.json())
       .then(rows => {
         setSkillCaps(transformSkillCaps(rows));
-        setLastUpdated(new Date().toLocaleTimeString());
       })
       .catch(err => {
         console.error("Failed to fetch skill levels data", err);
+      });
+    fetch(CLASS_URL)
+      .then(res => res.json())
+      .then(rows => {
+        setClassInfo(transformClassInfo(rows));
+        setLastUpdated(new Date().toLocaleTimeString());
+      })
+      .catch(err => {
+        console.error("Failed to fetch class info data", err);
       });
     const timer = setInterval(() => {
       fetch(SHEET_URL)
@@ -77,10 +87,18 @@ export default function App() {
         .then(res => res.json())
         .then(rows => {
           setSkillCaps(transformSkillCaps(rows));
-          setLastUpdated(new Date().toLocaleTimeString());
         })
         .catch(err => {
           console.error("Failed to fetch skill levels data", err);
+        });
+      fetch(CLASS_URL)
+        .then(res => res.json())
+        .then(rows => {
+          setClassInfo(transformClassInfo(rows));
+          setLastUpdated(new Date().toLocaleTimeString());
+        })
+        .catch(err => {
+          console.error("Failed to fetch class info data", err);
         });
     }, 60000);
     return () => clearInterval(timer);
@@ -99,10 +117,18 @@ export default function App() {
       .then(res => res.json())
       .then(rows => {
         setSkillCaps(transformSkillCaps(rows));
-        setLastUpdated(new Date().toLocaleTimeString());
       })
       .catch(err => {
         console.error("Failed to fetch skill levels data", err);
+      });
+    fetch(CLASS_URL)
+      .then(res => res.json())
+      .then(rows => {
+        setClassInfo(transformClassInfo(rows));
+        setLastUpdated(new Date().toLocaleTimeString());
+      })
+      .catch(err => {
+        console.error("Failed to fetch class info data", err);
       });
   };
 
@@ -166,6 +192,16 @@ export default function App() {
     return result;
   }
 
+  // Transform class info data
+  function transformClassInfo(rows) {
+    const result = {};
+    rows.forEach(row => {
+      const cls = row.Class;
+      result[cls] = row; // Store the entire row for flexibility
+    });
+    return result;
+  }
+
   // Toggle selection (max 3 classes)
   function toggleClass(cls) {
     if (selected.includes(cls)) {
@@ -181,6 +217,7 @@ export default function App() {
     const allowedCompetencies = new Set(["Melee", "Ability", "Defense", "Special"]);
     const allSpellNames = new Set();
     const selectedSpellNames = new Set();
+    const spellProviders = {};
 
     Object.values(classes).forEach(cls => {
       cls.skills.forEach(skill => {
@@ -197,6 +234,10 @@ export default function App() {
       cls.skills.forEach(skill => {
         if (skill.competency === "Spell" && skill.level === 1) {
           selectedSpellNames.add(skill.name);
+          // Only set provider if not already set (first selected class wins)
+          if (!spellProviders[skill.name]) {
+            spellProviders[skill.name] = clsName;
+          }
         }
         if (!allowedCompetencies.has(skill.competency)) return;
 
@@ -214,7 +255,8 @@ export default function App() {
           combinedSkills[skill.name] = {
             name: skill.name,
             level: effectiveLevel,
-            competency: skill.competency
+            competency: skill.competency,
+            provider: clsName
           };
         }
       });
@@ -239,7 +281,8 @@ export default function App() {
       .sort((a, b) => a.localeCompare(b))
       .map(name => ({
         name,
-        included: selectedSpellNames.has(name)
+        included: selectedSpellNames.has(name),
+        provider: spellProviders[name] || null
       }));
 
     return {
@@ -254,41 +297,113 @@ export default function App() {
     <div style={pageStyle}>
       <div style={{ display: "flex", justifyContent: "center", marginBottom: "20px" }}>
         <div style={{ maxWidth: "1100px", width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <h1 style={{ fontFamily: "Cinzel", color: "#FFD700" }}>Legendary Class Builder</h1>
+          <h1 style={{ fontFamily: "Cinzel", color: "#bfa76a" }}>Legendary Class Builder</h1>
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "5px" }}>
-              <label style={{ fontSize: "0.9rem", color: "#aaa" }}>Character Level: {selectedLevel}</label>
-              <input
-                type="range"
-                min="1"
-                max="60"
-                value={selectedLevel}
-                onChange={(e) => setSelectedLevel(Number(e.target.value))}
-                style={{ width: "120px" }}
-              />
-            </div>
-            <button onClick={fetchSheetData} style={buttonBaseStyle}>Refresh Data</button>
             {lastUpdated && <span style={{ color: "#aaa", fontSize: "0.95rem" }}>Last refresh: {lastUpdated}</span>}
           </div>
         </div>
       </div>
 
       <div style={{ display: "flex", justifyContent: "center", marginBottom: "20px" }}>
-        <div style={{ maxWidth: "1100px", width: "100%", backgroundColor: "#1e293b", padding: "5px 20px", borderRadius: "8px", border: "1px solid #334155" }}>
-          <h2>Select up to 3 classes</h2>
-
+        <div
+          style={{
+            maxWidth: "1100px",
+            width: "100%",
+            backgroundColor: "#1e293b",
+            padding: "5px 20px",
+            borderRadius: "8px",
+            borderLeft: "4px solid #bfa76a",
+            borderBottom: "4px solid #bfa76a",
+            borderTop: "1px solid #334155",
+            borderRight: "1px solid #334155",
+            backgroundImage: `
+              repeating-linear-gradient(
+                to bottom,
+                transparent,
+                transparent 7px,
+                #bfa76a 7px,
+                #bfa76a 9px,
+                transparent 9px,
+                transparent 16px
+              ),
+              repeating-linear-gradient(
+                to right,
+                transparent,
+                transparent 7px,
+                #bfa76a 7px,
+                #bfa76a 9px,
+                transparent 9px,
+                transparent 16px
+              )
+            `,
+            backgroundPosition: 'left top, left bottom',
+            backgroundRepeat: 'repeat-y, repeat-x',
+            backgroundSize: '4px 16px, 16px 4px',
+            position: 'relative'
+          }}
+        >
+          <div style={{ position: 'absolute', top: 12, right: 24, zIndex: 2, background: 'rgba(30,41,59,0.95)', borderRadius: 8, padding: '8px 16px', boxShadow: '0 2px 8px 0 rgba(0,0,0,0.08)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <label style={{ fontSize: '0.9rem', color: '#aaa', marginBottom: 2 }}>Character Level: {selectedLevel}</label>
+            <input
+              type="range"
+              min="1"
+              max="60"
+              value={selectedLevel}
+              onChange={(e) => setSelectedLevel(Number(e.target.value))}
+              style={{ width: '150px' }}
+            />
+          </div>
+          <h2>Class Selection (Limit 3)</h2>
           <div>
-            {classes && Object.keys(classes).map(cls => (
-              <button
-                key={cls}
-                onClick={() => toggleClass(cls)}
-                onMouseEnter={() => setHoveredClass(cls)}
-                onMouseLeave={() => setHoveredClass(null)}
-                style={getButtonStyle(cls)}
-              >
-                {cls}
-              </button>
-            ))}
+            {(() => {
+              if (!classes || !classInfo) return null;
+              const buckets = {
+                Melee: [],
+                Hybrid: [],
+                Priest: [],
+                Caster: []
+              };
+              Object.keys(classes).forEach(cls => {
+                const classification = classInfo[cls]?.Classification || "";
+                if (buckets[classification]) {
+                  buckets[classification].push(cls);
+                }
+              });
+              // Render Melee/Hybrid in left column, Priest/Caster in right column
+              const colStyle = { display: "flex", flexDirection: "column", gap: "6px", flex: 1 };
+              const bucketBlock = (bucket, label) => (
+                buckets[bucket]?.length ? (
+                  <div key={bucket} style={{ minWidth: "180px", marginBottom: "0" }}>
+                    <div style={{ fontWeight: 600, color: "#bfa76a", margin: "4px 0 2px 0" }}>{label}</div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                      {buckets[bucket].sort().map(cls => (
+                        <button
+                          key={cls}
+                          onClick={() => toggleClass(cls)}
+                          onMouseEnter={() => setHoveredClass(cls)}
+                          onMouseLeave={() => setHoveredClass(null)}
+                          style={getButtonStyle(cls)}
+                        >
+                          {cls}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : null
+              );
+              return (
+                <div style={{ display: "flex", gap: "32px", marginBottom: "0" }}>
+                  <div style={colStyle}>
+                    {bucketBlock("Melee", "Melee")}
+                    {bucketBlock("Hybrid", "Hybrid")}
+                  </div>
+                  <div style={colStyle}>
+                    {bucketBlock("Priest", "Priest")}
+                    {bucketBlock("Caster", "Caster")}
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         </div>
       </div>
@@ -324,7 +439,14 @@ export default function App() {
                             listStyle: "none"
                           }}
                         >
-                          <span>{s.name}</span>
+                          <span>
+                            {s.name}
+                            {s.provider && (
+                              <span style={{ fontSize: "0.75em", color: "#888", marginLeft: 4 }}>
+                                ({s.provider})
+                              </span>
+                            )}
+                          </span>
                           {comp !== "Special" && (
                             <span style={{ minWidth: "36px", textAlign: "right", fontWeight: "bold" }}>{s.level}</span>
                           )}
@@ -370,7 +492,14 @@ export default function App() {
                   border: spell.included ? "1px solid #3c8f64" : "1px solid #334155"
                 }}
               >
-                <div style={{ fontSize: "0.95rem", textAlign: "center" }}>{spell.name}</div>
+                <div style={{ fontSize: "0.95rem", textAlign: "center", lineHeight: 1.1 }}>
+                  {spell.name}
+                </div>
+                {spell.included && spell.provider && (
+                  <div style={{ fontSize: "0.75em", color: "#bbb", marginTop: 2, textAlign: "center" }}>
+                    ({spell.provider})
+                  </div>
+                )}
               </div>
             ))}
           </div>

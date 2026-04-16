@@ -21,15 +21,7 @@ export default function App() {
     fontFamily: "Inter, sans-serif"
   };
 
-  const buttonBaseStyle = {
-    margin: "5px",
-    padding: "10px 14px",
-    border: "1px solid #334155",
-    borderRadius: "5px",
-    color: "#f5f5f5",
-    background: "#1e293b",
-    cursor: "pointer"
-  };
+
 
   const getButtonStyle = (cls) => {
     const isSelected = selected.includes(cls);
@@ -104,33 +96,7 @@ export default function App() {
     return () => clearInterval(timer);
   }, []);
 
-  const fetchSheetData = () => {
-    fetch(SHEET_URL)
-      .then(res => res.json())
-      .then(rows => {
-        setClasses(transformData(rows));
-      })
-      .catch(err => {
-        console.error("Failed to fetch class data", err);
-      });
-    fetch(SKILL_LEVELS_URL)
-      .then(res => res.json())
-      .then(rows => {
-        setSkillCaps(transformSkillCaps(rows));
-      })
-      .catch(err => {
-        console.error("Failed to fetch skill levels data", err);
-      });
-    fetch(CLASS_URL)
-      .then(res => res.json())
-      .then(rows => {
-        setClassInfo(transformClassInfo(rows));
-        setLastUpdated(new Date().toLocaleTimeString());
-      })
-      .catch(err => {
-        console.error("Failed to fetch class info data", err);
-      });
-  };
+
 
   // Transform sheet → structured class data
   function transformData(rows) {

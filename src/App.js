@@ -185,6 +185,7 @@ export default function App() {
     const allSpellNames = new Set();
     const selectedSpellNames = new Set();
     const spellProviders = {};
+    const spellProviderLists = {};
 
     Object.values(classes).forEach(cls => {
       cls.skills.forEach(skill => {
@@ -201,7 +202,12 @@ export default function App() {
       cls.skills.forEach(skill => {
         if (skill.competency === "Spell" && skill.level === 1) {
           selectedSpellNames.add(skill.name);
-          // Only set provider if not already set (first selected class wins)
+          // Track all providers for this spell
+          if (!spellProviderLists[skill.name]) {
+            spellProviderLists[skill.name] = [];
+          }
+          spellProviderLists[skill.name].push(clsName);
+          // Only set provider if not already set (for legacy single-provider logic)
           if (!spellProviders[skill.name]) {
             spellProviders[skill.name] = clsName;
           }
@@ -249,7 +255,8 @@ export default function App() {
       .map(name => ({
         name,
         included: selectedSpellNames.has(name),
-        provider: spellProviders[name] || null
+        provider: spellProviders[name] || null,
+        providers: spellProviderLists[name] || []
       }));
 
     return {
@@ -445,32 +452,66 @@ export default function App() {
                 gap: "10px"
               }}
             >
-              {analysis.spellCells.map((spell, i) => (
-                <div
-                  key={i}
-                  style={{
-                    padding: "10px",
-                    minHeight: "60px",
-                    background: spell.included ? "#2a663d" : "#1e293b",
-                    color: "#f5f5f5",
-                    display: "flex",
-                    flexDirection: "column",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    borderRadius: "6px",
-                    border: spell.included ? "1px solid #3c8f64" : "1px solid #334155"
-                  }}
-                >
-                  <div style={{ fontSize: "0.95rem", textAlign: "center", lineHeight: 1.1 }}>
-                    {spell.name}
-                  </div>
-                  {spell.included && spell.provider && (
-                    <div style={{ fontSize: "0.75em", color: "#bbb", marginTop: 2, textAlign: "center" }}>
-                      ({spell.provider})
+              {analysis.spellCells.map((spell, i) => {
+                let providerAbbrs = [];
+                if (spell.included && spell.providers.length > 0) {
+                  providerAbbrs = spell.providers.map(clsName =>
+                    classInfo[clsName]?.Abbreviation || clsName
+                  );
+                }
+                return (
+                  <div
+                    key={i}
+                    style={{
+                      padding: "10px",
+                      minHeight: "60px",
+                      background: spell.included ? "#2a663d" : "#1e293b",
+                      color: "#f5f5f5",
+                      display: "flex",
+                      flexDirection: "column",
+                      justifyContent: "center",
+                      alignItems: "center",
+                      borderRadius: "6px",
+                      border: spell.included ? "1px solid #3c8f64" : "1px solid #334155"
+                    }}
+                  >
+                    <div style={{ fontSize: "0.95rem", textAlign: "center", lineHeight: 1.1 }}>
+                      {spell.name}
                     </div>
-                  )}
-                </div>
-              ))}
+                    {spell.included && providerAbbrs.length > 0 && (
+                      <div
+                        style={{
+                          fontSize: "0.75em",
+                          color: "#bbb",
+                          marginTop: 2,
+                          textAlign: "center",
+                          wordBreak: "break-word",
+                          whiteSpace: "normal",
+                          overflowWrap: "anywhere"
+                        }}
+                      >
+                        <span
+                          style={{
+                            display: 'inline',
+                            whiteSpace: 'normal',
+                            wordBreak: 'normal',
+                            overflowWrap: 'anywhere',
+                          }}
+                        >
+                          {'('}
+                          {providerAbbrs.map((abbr, idx) => (
+                            <React.Fragment key={abbr}>
+                              {abbr}
+                              {idx < providerAbbrs.length - 1 && <>{'/' + '\u200b'}</>}
+                            </React.Fragment>
+                          ))}
+                          {')'}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>

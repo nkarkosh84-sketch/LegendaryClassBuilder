@@ -1,14 +1,24 @@
-import React, { useEffect, useState } from "react";
-import { Analytics } from "@vercel/analytics/react";
+
+  import React, { useEffect, useState } from "react";
+  import { Analytics } from "@vercel/analytics/react";
+  // Utility to get unique races from race data
+  function getUniqueRaces(raceRows) {
+    const set = new Set();
+    raceRows.forEach(row => set.add(row.Race));
+    return Array.from(set);
+  }
 
 const SHEET_URL = "https://opensheet.elk.sh/1za0-DAyxcbcavywbquHzaWm8BKLBU_2lO9Omw8CEqYY/JSON";
 const SKILL_LEVELS_URL = "https://opensheet.elk.sh/1za0-DAyxcbcavywbquHzaWm8BKLBU_2lO9Omw8CEqYY/SkillLevels";
 const CLASS_URL = "https://opensheet.elk.sh/1za0-DAyxcbcavywbquHzaWm8BKLBU_2lO9Omw8CEqYY/Class";
+const RACE_URL = "https://opensheet.elk.sh/1za0-DAyxcbcavywbquHzaWm8BKLBU_2lO9Omw8CEqYY/Race";
 
 export default function App() {
   const [classes, setClasses] = useState({});
   const [skillCaps, setSkillCaps] = useState({});
   const [classInfo, setClassInfo] = useState({});
+  const [raceData, setRaceData] = useState([]);
+  const [selectedRace, setSelectedRace] = useState(null);
   const [selected, setSelected] = useState([]);
   const [selectedLevel, setSelectedLevel] = useState(60);
   const [lastUpdated, setLastUpdated] = useState(null);
@@ -24,20 +34,30 @@ export default function App() {
 
 
 
+  // For class selection, determine if a class is available for the first pick based on selectedRace
+  function isClassAvailableForRace(cls) {
+    if (!selectedRace || selected.length > 0) return true;
+    // Find if this class is included for the selected race (Inclusion === '1')
+    return raceData.some(row => row.Race === selectedRace && row.Class === cls && String(row.Inclusion).trim() === '1');
+  }
+
   const getButtonStyle = (cls) => {
     const isSelected = selected.includes(cls);
     const isHovered = hoveredClass === cls;
+    const isAvailable = isClassAvailableForRace(cls);
     return {
       margin: "5px",
       padding: "10px 14px",
       border: `1px solid ${isSelected ? "#3c8f64" : "#334155"}`,
       borderRadius: "12px",
-      color: "#f5f5f5",
+      color: isAvailable ? "#f5f5f5" : "#888",
       background: isSelected ? "#2a663d" : "#1e293b",
-      cursor: "pointer",
+      cursor: isAvailable ? "pointer" : "not-allowed",
       boxShadow: isSelected ? "0 0 10px rgba(60, 143, 100, 0.5)" : "none",
       transform: isHovered ? "scale(1.05)" : "scale(1)",
-      transition: "all 0.2s ease"
+      transition: "all 0.2s ease",
+      textDecoration: !isAvailable && selected.length === 0 ? "line-through" : "none",
+      opacity: !isAvailable && selected.length === 0 ? 0.5 : 1
     };
   };
 
@@ -67,6 +87,14 @@ export default function App() {
       .catch(err => {
         console.error("Failed to fetch class info data", err);
       });
+    fetch(RACE_URL)
+      .then(res => res.json())
+      .then(rows => {
+        setRaceData(rows);
+      })
+      .catch(err => {
+        console.error("Failed to fetch race data", err);
+      });
     const timer = setInterval(() => {
       fetch(SHEET_URL)
         .then(res => res.json())
@@ -92,6 +120,14 @@ export default function App() {
         })
         .catch(err => {
           console.error("Failed to fetch class info data", err);
+        });
+      fetch(RACE_URL)
+        .then(res => res.json())
+        .then(rows => {
+          setRaceData(rows);
+        })
+        .catch(err => {
+          console.error("Failed to fetch race data", err);
         });
     }, 60000);
     return () => clearInterval(timer);
@@ -171,6 +207,8 @@ export default function App() {
 
   // Toggle selection (max 3 classes)
   function toggleClass(cls) {
+    // If picking first class, enforce race restriction
+    if (selected.length === 0 && !isClassAvailableForRace(cls)) return;
     if (selected.includes(cls)) {
       setSelected(selected.filter(c => c !== cls));
     } else if (selected.length < 3) {
@@ -267,9 +305,13 @@ export default function App() {
 
   const analysis = analyze();
 
+  // Unique races for race selection
+  const uniqueRaces = getUniqueRaces(raceData);
+
   return (
     <div style={pageStyle}>
       <Analytics />
+      {/* Header at the very top */}
       <div style={{ display: "flex", justifyContent: "center", marginBottom: "20px" }}>
         <div style={{ maxWidth: "1100px", width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <h1 style={{ fontFamily: "Cinzel", color: "#bfa76a" }}>Legendary Class Builder</h1>
@@ -278,6 +320,48 @@ export default function App() {
           </div>
         </div>
       </div>
+      {/* Race Selection Panel */}
+      <div style={{ display: "flex", justifyContent: "center", marginBottom: "16px" }}>
+        <div style={{ maxWidth: "1100px", width: "100%", backgroundColor: "#1e293b", padding: "10px 20px", borderRadius: "8px", borderLeft: "4px solid #bfa76a", borderTop: "1px solid #334155", borderRight: "1px solid #334155", marginBottom: 0 }}>
+          <h2 style={{ margin: "0 0 10px 0" }}>Race Selection</h2>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+            {uniqueRaces.map(race => (
+              <button
+                key={race}
+                onClick={() => {
+                  const newRace = selectedRace === race ? null : race;
+                  setSelectedRace(newRace);
+                  setSelected([]);
+                }}
+                onMouseEnter={() => setHoveredClass(race)}
+                onMouseLeave={() => setHoveredClass(null)}
+                style={(() => {
+                  const isSelected = selectedRace === race;
+                  const isHovered = hoveredClass === race;
+                  return {
+                    margin: "5px",
+                    padding: "10px 14px",
+                    border: `1px solid ${isSelected ? "#bfa76a" : "#334155"}`,
+                    borderRadius: "12px",
+                    background: isSelected ? "#2a663d" : "#1e293b",
+                    color: isSelected ? "#bfa76a" : "#f5f5f5",
+                    fontWeight: isSelected ? 700 : 400,
+                    fontFamily: "Inter, sans-serif",
+                    fontSize: "1rem",
+                    cursor: "pointer",
+                    boxShadow: isSelected ? "0 0 10px rgba(60, 143, 100, 0.5)" : "none",
+                    transform: isHovered ? "scale(1.05)" : "scale(1)",
+                    transition: "all 0.2s ease"
+                  };
+                })()}
+              >
+                {race}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+      {/* End Race Selection Panel */}
 
       <div style={{ display: "flex", justifyContent: "center", marginBottom: "20px" }}>
         <div

@@ -502,7 +502,7 @@ export default function App() {
                           {providerAbbrs.map((abbr, idx) => (
                             <React.Fragment key={abbr}>
                               {abbr}
-                              {idx < providerAbbrs.length - 1 && <>{'/' + '\u200b'}</>}
+                                    {idx < providerAbbrs.length - 1 && <>/{'\u200b'}</>}
                             </React.Fragment>
                           ))}
                           {')'}

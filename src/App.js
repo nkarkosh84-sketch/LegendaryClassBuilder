@@ -374,8 +374,8 @@ export default function App() {
         </div>
       </div>
 
-      <div style={{ display: "flex", gap: "40px", alignItems: "flex-start", justifyContent: "center", maxWidth: "1100px", margin: "0 auto", backgroundColor: "#1e293b", padding: "20px", borderRadius: "8px", border: "1px solid #334155" }}>
-        <div style={{ flex: 1, minWidth: "320px" }}>
+      <div className="main-panels-container">
+        <div className="max-skills-panel">
           <h2>Max Skill Levels</h2>
           {['Melee', 'Defense', 'Ability', 'Special'].map(comp => (
             <div
@@ -433,9 +433,10 @@ export default function App() {
           ))}
         </div>
 
-        <div style={{ minWidth: "320px" }}>
+        <div className="spell-inclusion-panel">
           <h2>Spell Inclusion</h2>
           <div
+            className="spell-inclusion-grid"
             style={{
               display: "grid",
               gridTemplateColumns: "repeat(5, minmax(0, 1fr))",

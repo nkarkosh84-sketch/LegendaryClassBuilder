@@ -262,6 +262,7 @@ export default function App() {
 
   return (
     <div style={pageStyle}>
+      <Analytics />
       <div style={{ display: "flex", justifyContent: "center", marginBottom: "20px" }}>
         <div style={{ maxWidth: "1100px", width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <h1 style={{ fontFamily: "Cinzel", color: "#bfa76a" }}>Legendary Class Builder</h1>

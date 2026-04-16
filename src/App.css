@@ -1,3 +1,12 @@
+html, body, #root {
+  width: 100%;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  background: #0f172a;
+}
+
 .App {
   text-align: center;
 }
@@ -52,7 +61,7 @@
 
 .max-skills-panel {
   flex: 1;
-  min-width: 320px;
+  max-width: 500px;
 }
 
 .spell-inclusion-panel {
@@ -75,6 +84,7 @@
   .spell-inclusion-panel {
     min-width: 0;
     width: 100%;
+    /* Do not override max-width for .max-skills-panel */
   }
   .spell-inclusion-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -90,4 +100,22 @@
   .spell-inclusion-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+}
+
+.overview-panel-wrapper {
+  display: flex;
+  justify-content: center;
+  margin-top: 32px;
+  margin-bottom: 24px;
+}
+
+.overview-panel {
+  max-width: 420px;
+  width: 100%;
+  background: #1e293b;
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid #334155;
+  color: #cbd5e1;
+  box-sizing: border-box;
 }

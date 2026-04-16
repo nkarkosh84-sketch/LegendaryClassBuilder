@@ -374,109 +374,116 @@ export default function App() {
         </div>
       </div>
 
-      <div className="main-panels-container">
-        <div className="max-skills-panel">
-          <h2>Max Skill Levels</h2>
-          {['Melee', 'Defense', 'Ability', 'Special'].map(comp => (
-            <div
-              key={comp}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "20px",
-                marginBottom: "16px"
-              }}
-            >
-              <div style={{ minWidth: "90px", fontWeight: "bold" }}>{comp}</div>
-              <div style={{ flex: 1 }}>
-                {analysis.groupedSkills[comp].length > 0 ? (
-                  <ul style={{ margin: 0, paddingLeft: "0" }}>
-                    {analysis.groupedSkills[comp]
-                      .filter(s => s.level > 0)
-                      .map((s, i) => (
-                        <li
-                          key={i}
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            gap: "12px",
-                            padding: "6px 0",
-                            borderBottom: "1px solid #334155",
-                            listStyle: "none"
-                          }}
-                        >
-                          <span>
-                            {s.name}
-                            {s.provider && (
-                              <span style={{ fontSize: "0.75em", color: "#888", marginLeft: 4 }}>
-                                ({s.provider})
-                              </span>
-                            )}
-                          </span>
-                          {comp !== "Special" && (
-                            <span style={{ minWidth: "36px", textAlign: "right", fontWeight: "bold" }}>{s.level}</span>
-                          )}
-                        </li>
-                      ))}
-                  </ul>
-                ) : (
-                  <p style={{ margin: 0 }}>
-                    {selected.length === 0
-                      ? "No Class Selected"
-                      : comp === "Special"
-                      ? "No Specials Available."
-                      : `No ${comp} skills selected.`}
-                  </p>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div className="spell-inclusion-panel">
-          <h2>Spell Inclusion</h2>
-          <div
-            className="spell-inclusion-grid"
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(5, minmax(0, 1fr))",
-              gap: "10px"
-            }}
-          >
-            {analysis.spellCells.map((spell, i) => (
+      <div style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
+        <div className="main-panels-container">
+          <div className="max-skills-panel" style={{ maxWidth: '500px', width: '100%' }}>
+            <h2>Max Skill Levels</h2>
+            {['Melee', 'Defense', 'Ability', 'Special'].map(comp => (
               <div
-                key={i}
+                key={comp}
                 style={{
-                  padding: "10px",
-                  minHeight: "60px",
-                  background: spell.included ? "#2a663d" : "#1e293b",
-                  color: "#f5f5f5",
                   display: "flex",
-                  flexDirection: "column",
-                  justifyContent: "center",
                   alignItems: "center",
-                  borderRadius: "6px",
-                  border: spell.included ? "1px solid #3c8f64" : "1px solid #334155"
+                  gap: "20px",
+                  marginBottom: "16px"
                 }}
               >
-                <div style={{ fontSize: "0.95rem", textAlign: "center", lineHeight: 1.1 }}>
-                  {spell.name}
+                <div style={{ minWidth: "90px", fontWeight: "bold" }}>{comp}</div>
+                <div style={{ flex: 1 }}>
+                  {analysis.groupedSkills[comp].length > 0 ? (
+                    <ul style={{ margin: 0, paddingLeft: "0" }}>
+                      {analysis.groupedSkills[comp]
+                        .filter(s => s.level > 0)
+                        .map((s, i) => (
+                          <li
+                            key={i}
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              gap: "12px",
+                              padding: "6px 0",
+                              borderBottom: "1px solid #334155",
+                              listStyle: "none"
+                            }}
+                          >
+                            <span>
+                              {s.name}
+                              {s.provider && (
+                                <span style={{ fontSize: "0.75em", color: "#888", marginLeft: 4 }}>
+                                  ({s.provider})
+                                </span>
+                              )}
+                            </span>
+                            {comp !== "Special" && (
+                              <span style={{ minWidth: "36px", textAlign: "right", fontWeight: "bold" }}>{s.level}</span>
+                            )}
+                          </li>
+                        ))}
+                    </ul>
+                  ) : (
+                    <p style={{ margin: 0 }}>
+                      {selected.length === 0
+                        ? "No Class Selected"
+                        : comp === "Special"
+                        ? "No Specials Available."
+                        : `No ${comp} skills selected.`}
+                    </p>
+                  )}
                 </div>
-                {spell.included && spell.provider && (
-                  <div style={{ fontSize: "0.75em", color: "#bbb", marginTop: 2, textAlign: "center" }}>
-                    ({spell.provider})
-                  </div>
-                )}
               </div>
             ))}
+          </div>
+          <div className="spell-inclusion-panel" style={{ maxWidth: '620px', width: '100%' }}>
+            <h2>Spell Inclusion</h2>
+            <div
+              className="spell-inclusion-grid"
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(5, minmax(0, 1fr))",
+                gap: "10px"
+              }}
+            >
+              {analysis.spellCells.map((spell, i) => (
+                <div
+                  key={i}
+                  style={{
+                    padding: "10px",
+                    minHeight: "60px",
+                    background: spell.included ? "#2a663d" : "#1e293b",
+                    color: "#f5f5f5",
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    borderRadius: "6px",
+                    border: spell.included ? "1px solid #3c8f64" : "1px solid #334155"
+                  }}
+                >
+                  <div style={{ fontSize: "0.95rem", textAlign: "center", lineHeight: 1.1 }}>
+                    {spell.name}
+                  </div>
+                  {spell.included && spell.provider && (
+                    <div style={{ fontSize: "0.75em", color: "#bbb", marginTop: 2, textAlign: "center" }}>
+                      ({spell.provider})
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
 
-      <div style={{ maxWidth: "1100px", width: "100%", margin: "20px auto 0", backgroundColor: "#1e293b", padding: "20px", borderRadius: "8px", border: "1px solid #334155" }}>
-        <h2>Overview</h2>
-        <p style={{ margin: 0, color: "#cbd5e1" }}>Overview details will be defined later.</p>
+      <div className="overview-panel-wrapper">
+        <div className="overview-panel">
+          <h2>Overview</h2>
+          <p>Overview details will be defined later.</p>
+        </div>
       </div>
+
+      <footer style={{ width: '100%', textAlign: 'center', color: '#bfa76a', fontSize: '1rem', margin: '32px 0 8px 0', letterSpacing: '0.5px' }}>
+        Development by Shnate.
+      </footer>
     </div>
   );
 }

@@ -12,12 +12,16 @@ const SHEET_URL = "https://opensheet.elk.sh/1za0-DAyxcbcavywbquHzaWm8BKLBU_2lO9O
 const SKILL_LEVELS_URL = "https://opensheet.elk.sh/1za0-DAyxcbcavywbquHzaWm8BKLBU_2lO9Omw8CEqYY/SkillLevels";
 const CLASS_URL = "https://opensheet.elk.sh/1za0-DAyxcbcavywbquHzaWm8BKLBU_2lO9Omw8CEqYY/Class";
 const RACE_URL = "https://opensheet.elk.sh/1za0-DAyxcbcavywbquHzaWm8BKLBU_2lO9Omw8CEqYY/Race";
+const SPELL_LEVELS_URL = "https://opensheet.elk.sh/1za0-DAyxcbcavywbquHzaWm8BKLBU_2lO9Omw8CEqYY/SpellLevels";
+const SPELL_TYPES_URL = "https://opensheet.elk.sh/1za0-DAyxcbcavywbquHzaWm8BKLBU_2lO9Omw8CEqYY/SpellType";
 
 export default function App() {
   const [classes, setClasses] = useState({});
   const [skillCaps, setSkillCaps] = useState({});
   const [classInfo, setClassInfo] = useState({});
   const [raceData, setRaceData] = useState([]);
+  const [spellLevels, setSpellLevels] = useState([]);
+  const [spellTypes, setSpellTypes] = useState([]);
   const [selectedRace, setSelectedRace] = useState(null);
   const [selected, setSelected] = useState([]);
   const [selectedLevel, setSelectedLevel] = useState(60);
@@ -61,10 +65,12 @@ export default function App() {
     };
   };
 
+
   useEffect(() => {
     fetch(SHEET_URL)
       .then(res => res.json())
       .then(rows => {
+        console.log('SHEET_URL data:', rows);
         setClasses(transformData(rows));
       })
       .catch(err => {
@@ -73,6 +79,7 @@ export default function App() {
     fetch(SKILL_LEVELS_URL)
       .then(res => res.json())
       .then(rows => {
+        console.log('SKILL_LEVELS_URL data:', rows);
         setSkillCaps(transformSkillCaps(rows));
       })
       .catch(err => {
@@ -81,6 +88,7 @@ export default function App() {
     fetch(CLASS_URL)
       .then(res => res.json())
       .then(rows => {
+        console.log('CLASS_URL data:', rows);
         setClassInfo(transformClassInfo(rows));
         setLastUpdated(new Date().toLocaleTimeString());
       })
@@ -90,10 +98,32 @@ export default function App() {
     fetch(RACE_URL)
       .then(res => res.json())
       .then(rows => {
+        console.log('RACE_URL data:', rows);
         setRaceData(rows);
       })
       .catch(err => {
         console.error("Failed to fetch race data", err);
+      });
+    fetch(SPELL_LEVELS_URL)
+      .then(res => res.json())
+      .then(rows => {
+        console.log('SPELL_LEVELS_URL data:', rows);
+        setSpellLevels(transformSpellLevels(rows));
+      })
+      .catch(err => {
+        console.error("Failed to fetch spell levels data", err);
+      });
+    fetch(SPELL_TYPES_URL)
+      .then(res => {
+        console.log('SPELL_TYPES_URL fetch status:', res.status);
+        return res.json();
+      })
+      .then(rows => {
+        console.log('SPELL_TYPES_URL data:', rows);
+        setSpellTypes(transformSpellTypes(rows));
+      })
+      .catch(err => {
+        console.error("Failed to fetch spell types data", err);
       });
     const timer = setInterval(() => {
       fetch(SHEET_URL)
@@ -129,9 +159,36 @@ export default function App() {
         .catch(err => {
           console.error("Failed to fetch race data", err);
         });
+      fetch(SPELL_LEVELS_URL)
+        .then(res => res.json())
+        .then(rows => {
+          setSpellLevels(transformSpellLevels(rows));
+        })
+        .catch(err => {
+          console.error("Failed to fetch spell levels data", err);
+        });
+      fetch(SPELL_TYPES_URL)
+        .then(res => res.json())
+        .then(rows => {
+          setSpellTypes(transformSpellTypes(rows));
+        })
+        .catch(err => {
+          console.error("Failed to fetch spell types data", err);
+        });
     }, 60000);
     return () => clearInterval(timer);
   }, []);
+    // Transform spell types data
+    function transformSpellTypes(rows) {
+      // Defensive: always return an array
+      if (!Array.isArray(rows)) return [];
+      return rows;
+    }
+  // Transform spell levels data
+  function transformSpellLevels(rows) {
+    // You may want to adjust this based on the actual structure of the sheet
+    return rows;
+  }
 
 
 
@@ -220,38 +277,95 @@ export default function App() {
   function analyze() {
     const combinedSkills = {};
     const allowedCompetencies = new Set(["Melee", "Ability", "Defense", "Special"]);
-    const allSpellNames = new Set();
-    const selectedSpellNames = new Set();
-    const spellProviders = {};
-    const spellProviderLists = {};
 
-    Object.values(classes).forEach(cls => {
-      cls.skills.forEach(skill => {
-        if (skill.competency === "Spell") {
-          allSpellNames.add(skill.name);
-        }
-      });
+    // Map selected class names to abbreviations
+    const selectedAbbrs = selected
+      .map(clsName => classInfo[clsName]?.Abbreviation)
+      .filter(Boolean);
+    console.log('[Step 1] Selected classes:', selected);
+    console.log('[Step 1] Class abbreviations:', selectedAbbrs);
+
+    // Build a map of SpellType to details
+    const spellTypeDetails = {};
+    spellTypes.forEach(type => {
+      spellTypeDetails[type.SpellType] = type;
     });
 
+    // Always show all SpellTypes with Inclusion=1 from SPELL_TYPES_URL
+    const includedSpellTypes = Array.from(new Set(
+      spellTypes.filter(type => type.Inclusion === "1" || type.Inclusion === 1).map(type => type.SpellType)
+    ));
+
+    // For each SpellType, find spells for selected classes (by abbreviation) up to selectedLevel
+    // Step-by-step debug output
+    if (spellLevels.length > 0) {
+      console.log('[Step 2] SpellLevels rows:', spellLevels.length);
+      includedSpellTypes.forEach(typeName => {
+        spellLevels.forEach(row => {
+          if (String(row.SpellType) === String(typeName)) {
+            selectedAbbrs.forEach(abbr => {
+              const classLevel = Number(row[abbr]);
+              if (!isNaN(classLevel) && classLevel > 0 && classLevel <= selectedLevel) {
+                console.log(`[Step 3] MATCH: SpellType ${typeName}, Spell: ${row.Name}, SpellTypeGroup: ${row.SpellTypeGroup}, Abbr: ${abbr}, Value: ${row[abbr]}, SpellID: ${row.ID}`);
+              }
+            });
+          }
+        });
+      });
+    }
+    // Deduplicate by SpellTypeGroup (from spellTypeDetails)
+    const seenGroups = new Set();
+      const spellCells = includedSpellTypes.sort().map(typeName => {
+        const group = (spellTypeDetails[typeName] && spellTypeDetails[typeName].SpellTypeGroup) || typeName;
+        if (seenGroups.has(group)) return null;
+        seenGroups.add(group);
+
+        // Find all SpellTypes that belong to this group
+        const allTypeNamesInGroup = spellTypes.filter(t => t.SpellTypeGroup === group).map(t => String(t.SpellType));
+
+        // Collect all spells for all SpellTypes in this group and all selected classes
+        let spells = [];
+        spellLevels.forEach(row => {
+          if (!allTypeNamesInGroup.includes(String(row.SpellType))) return;
+          // For all selected class abbreviations, aggregate spells
+          selectedAbbrs.forEach(abbr => {
+            const classLevel = Number(row[abbr]);
+            if (!isNaN(classLevel) && classLevel > 0 && classLevel <= selectedLevel) {
+              // Track which class provides this spell for tooltip clarity
+              spells.push({ ...row, Level: classLevel, ProvidedBy: abbr });
+            }
+          });
+        });
+        // Deduplicate spells by SpellID+Provider or Name+Provider if present
+        const seen = new Set();
+        spells = spells.filter(spell => {
+          const key = (spell.SpellID || spell.Name || spell.SpellName) + ':' + spell.ProvidedBy;
+          if (!key) return true;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+        // Sort spells by level descending
+        spells.sort((a, b) => Number(b.Level) - Number(a.Level));
+        if (spells.length > 0) {
+          console.log(`[SpellTypeGroup] ${group}:`, spells.map(s => (s.Name || s.SpellName) + ' (' + s.ProvidedBy + ')'));
+        }
+        return {
+          typeName,
+          included: spells.length > 0,
+          spells: spells.slice(0, 5), // Top 5 spells for tooltip
+          detail: spellTypeDetails[typeName] || {},
+          group
+        };
+      }).filter(Boolean);
+
+    // Skills logic remains unchanged
+    // Only include skills for selected classes and levels that exist in skillCaps
     selected.forEach(clsName => {
       const cls = classes[clsName];
       if (!cls) return;
-
       cls.skills.forEach(skill => {
-        if (skill.competency === "Spell" && skill.level === 1) {
-          selectedSpellNames.add(skill.name);
-          // Track all providers for this spell
-          if (!spellProviderLists[skill.name]) {
-            spellProviderLists[skill.name] = [];
-          }
-          spellProviderLists[skill.name].push(clsName);
-          // Only set provider if not already set (for legacy single-provider logic)
-          if (!spellProviders[skill.name]) {
-            spellProviders[skill.name] = clsName;
-          }
-        }
         if (!allowedCompetencies.has(skill.competency)) return;
-
         let effectiveLevel;
         if (skill.competency === "Special") {
           effectiveLevel = skill.level;
@@ -260,7 +374,6 @@ export default function App() {
           if (!cap) return;
           effectiveLevel = cap;
         }
-
         const existing = combinedSkills[skill.name];
         if (!existing || effectiveLevel > existing.level) {
           combinedSkills[skill.name] = {
@@ -279,23 +392,12 @@ export default function App() {
       Ability: [],
       Special: []
     };
-
     Object.values(combinedSkills).forEach(skill => {
       groupedSkills[skill.competency].push(skill);
     });
-
     Object.values(groupedSkills).forEach(group => {
       group.sort((a, b) => a.name.localeCompare(b.name));
     });
-
-    const spellCells = Array.from(allSpellNames)
-      .sort((a, b) => a.localeCompare(b))
-      .map(name => ({
-        name,
-        included: selectedSpellNames.has(name),
-        provider: spellProviders[name] || null,
-        providers: spellProviderLists[name] || []
-      }));
 
     return {
       groupedSkills,
@@ -536,63 +638,43 @@ export default function App() {
                 gap: "10px"
               }}
             >
-              {analysis.spellCells.map((spell, i) => {
-                let providerAbbrs = [];
-                if (spell.included && spell.providers.length > 0) {
-                  providerAbbrs = spell.providers.map(clsName =>
-                    classInfo[clsName]?.Abbreviation || clsName
-                  );
-                }
+              {analysis.spellCells.length === 0 && (
+                <div style={{ gridColumn: '1 / -1', color: '#bbb', textAlign: 'center', padding: '20px' }}>
+                  No spell inclusion groups found. (Debug: spellTypes={JSON.stringify(spellTypes)}, spellCells={JSON.stringify(analysis.spellCells)})
+                </div>
+              )}
+              {analysis.spellCells.map((cell, i) => {
+                // Prepare top 5 spells by level descending
+                const topSpells = cell.spells?.slice(0, 5) || [];
+                const tooltip = cell.included && topSpells.length > 0
+                  ? topSpells.map(spell => `${spell.Name || spell.SpellName || 'Unknown'} (Lv${spell.Level}) [${spell.ProvidedBy || ''}]`).join('\n')
+                  : (cell.detail.SpellTypeDetail || cell.typeName);
+
+                // Use SpellTypeGroup for cell label if present
+                const cellLabel = cell.detail.SpellTypeGroup || cell.typeName;
+                // Highlight green if spells are present
+                const isHighlighted = cell.included;
                 return (
                   <div
                     key={i}
                     style={{
                       padding: "10px",
                       minHeight: "60px",
-                      background: spell.included ? "#2a663d" : "#1e293b",
+                      background: isHighlighted ? "#2a663d" : "#1e293b",
                       color: "#f5f5f5",
                       display: "flex",
                       flexDirection: "column",
                       justifyContent: "center",
                       alignItems: "center",
                       borderRadius: "6px",
-                      border: spell.included ? "1px solid #3c8f64" : "1px solid #334155"
+                      border: isHighlighted ? "1px solid #3c8f64" : "1px solid #334155",
+                      cursor: isHighlighted ? "pointer" : "default"
                     }}
+                    title={tooltip}
                   >
                     <div style={{ fontSize: "0.95rem", textAlign: "center", lineHeight: 1.1 }}>
-                      {spell.name}
+                      {cellLabel}
                     </div>
-                    {spell.included && providerAbbrs.length > 0 && (
-                      <div
-                        style={{
-                          fontSize: "0.75em",
-                          color: "#bbb",
-                          marginTop: 2,
-                          textAlign: "center",
-                          wordBreak: "break-word",
-                          whiteSpace: "normal",
-                          overflowWrap: "anywhere"
-                        }}
-                      >
-                        <span
-                          style={{
-                            display: 'inline',
-                            whiteSpace: 'normal',
-                            wordBreak: 'normal',
-                            overflowWrap: 'anywhere',
-                          }}
-                        >
-                          {'('}
-                          {providerAbbrs.map((abbr, idx) => (
-                            <React.Fragment key={abbr}>
-                              {abbr}
-                                    {idx < providerAbbrs.length - 1 && <>/{'\u200b'}</>}
-                            </React.Fragment>
-                          ))}
-                          {')'}
-                        </span>
-                      </div>
-                    )}
                   </div>
                 );
               })}

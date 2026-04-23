@@ -629,7 +629,7 @@ export default function App() {
             ))}
           </div>
           <div className="spell-inclusion-panel" style={{ maxWidth: '620px', width: '100%' }}>
-            <h2>Spell Inclusion</h2>
+            <h2>Spell Inclusion <span style={{ fontSize: '0.8em', fontWeight: 400, color: '#bfa76a' }}>(Mouseover for details)</span></h2>
             <div
               className="spell-inclusion-grid"
               style={{
@@ -648,7 +648,7 @@ export default function App() {
                 const topSpells = cell.spells?.slice(0, 5) || [];
                 const tooltip = cell.included && topSpells.length > 0
                   ? topSpells.map(spell => `${spell.Name || spell.SpellName || 'Unknown'} (Lv${spell.Level}) [${spell.ProvidedBy || ''}]`).join('\n')
-                  : (cell.detail.SpellTypeDetail || cell.typeName);
+                  : (cell.detail.SpellTypeGroup || cell.typeName);
 
                 // Use SpellTypeGroup for cell label if present
                 const cellLabel = cell.detail.SpellTypeGroup || cell.typeName;

@@ -680,7 +680,7 @@ export default function App() {
               });
             });
             return (
-              <div style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
+              <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
                 <table style={{ maxWidth: 400, margin: '12px 0', borderCollapse: 'collapse', color: theme === 'dark' ? '#f5f5f5' : '#222' }}>
                   <thead>
                     <tr>
@@ -714,6 +714,26 @@ export default function App() {
                     })}
                   </tbody>
                 </table>
+                {/* Score row */}
+                <div style={{ marginTop: 12, fontWeight: 'bold', fontSize: '1.1em', color: gold }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'baseline', lineHeight: 1 }}>
+                    <span style={{ marginRight: 6 }}>Score</span>
+                    <span style={{ display: 'inline-flex', alignItems: 'baseline' }}>
+                      {categories.reduce((total, cat) => {
+                        const value = sums[cat] || 0;
+                        let stars = 0;
+                        if (value >= 13) stars = 5;
+                        else if (value >= 10) stars = 4;
+                        else if (value >= 7) stars = 3;
+                        else if (value >= 4) stars = 2;
+                        else if (value >= 1) stars = 1;
+                        else stars = 0;
+                        return total + stars;
+                      }, 0)}
+                      <span style={{ color: gold, fontSize: '1.1em', marginLeft: 4, position: 'relative', top: '0.05em' }}>★</span>
+                    </span>
+                  </span>
+                </div>
               </div>
             );
           })()}

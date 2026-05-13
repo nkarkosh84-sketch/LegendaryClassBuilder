@@ -1,12 +1,13 @@
 
-  import React, { useEffect, useState } from "react";
-  import { Analytics } from "@vercel/analytics/react";
-  // Utility to get unique races from race data
-  function getUniqueRaces(raceRows) {
-    const set = new Set();
-    raceRows.forEach(row => set.add(row.Race));
-    return Array.from(set);
-  }
+import React, { useEffect, useState } from "react";
+import { Analytics } from "@vercel/analytics/react";
+
+// Utility to get unique races from race data
+function getUniqueRaces(raceRows) {
+  const set = new Set();
+  raceRows.forEach(row => set.add(row.Race));
+  return Array.from(set);
+}
 
 const SHEET_URL = "https://opensheet.elk.sh/1za0-DAyxcbcavywbquHzaWm8BKLBU_2lO9Omw8CEqYY/JSON";
 const SKILL_LEVELS_URL = "https://opensheet.elk.sh/1za0-DAyxcbcavywbquHzaWm8BKLBU_2lO9Omw8CEqYY/SkillLevels";
@@ -16,6 +17,15 @@ const SPELL_LEVELS_URL = "https://opensheet.elk.sh/1za0-DAyxcbcavywbquHzaWm8BKLB
 const SPELL_TYPES_URL = "https://opensheet.elk.sh/1za0-DAyxcbcavywbquHzaWm8BKLBU_2lO9Omw8CEqYY/SpellType";
 
 export default function App() {
+  // Light/dark mode state
+  const [theme, setTheme] = useState('dark');
+  const toggleTheme = () => setTheme(theme === 'dark' ? 'light' : 'dark');
+  // Gold color for dark/light mode (must be inside component to access theme)
+  const gold = theme === 'dark' ? '#bfa76a' : '#8c6d1f';
+  const goldBorder = gold;
+  // Modal state for mobile/tap tooltips
+  const [modalTooltip, setModalTooltip] = useState(null);
+  const [modalOpen, setModalOpen] = useState(false);
   const [classes, setClasses] = useState({});
   const [skillCaps, setSkillCaps] = useState({});
   const [classInfo, setClassInfo] = useState({});
@@ -24,16 +34,17 @@ export default function App() {
   const [spellTypes, setSpellTypes] = useState([]);
   const [selectedRace, setSelectedRace] = useState(null);
   const [selected, setSelected] = useState([]);
-  const [selectedLevel, setSelectedLevel] = useState(60);
+  const [selectedLevel, setSelectedLevel] = useState(50);
   const [lastUpdated, setLastUpdated] = useState(null);
   const [hoveredClass, setHoveredClass] = useState(null);
 
   const pageStyle = {
     padding: "20px",
     minHeight: "100vh",
-    backgroundColor: "#0f172a",
-    color: "#f5f5f5",
-    fontFamily: "Inter, sans-serif"
+    backgroundColor: theme === 'dark' ? "#0f172a" : "#f5f5f5",
+    color: theme === 'dark' ? "#f5f5f5" : "#222",
+    fontFamily: "Inter, sans-serif",
+    transition: 'background 0.2s, color 0.2s'
   };
 
 
@@ -410,21 +421,92 @@ export default function App() {
   // Unique races for race selection
   const uniqueRaces = getUniqueRaces(raceData);
 
+  // Helper to detect touch device
+  const isTouchDevice = () => {
+    if (typeof window === 'undefined') return false;
+    return (
+      'ontouchstart' in window ||
+      navigator.maxTouchPoints > 0 ||
+      navigator.msMaxTouchPoints > 0
+    );
+  };
+
+  // Modal component
+  const TooltipModal = ({ open, content, onClose }) => {
+    if (!open) return null;
+    return (
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100vw',
+        height: '100vh',
+        background: 'rgba(0,0,0,0.45)',
+        zIndex: 1000,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }} onClick={onClose}>
+        <div style={{
+          background: '#1e293b',
+          color: '#f5f5f5',
+          padding: '24px 20px',
+          borderRadius: '10px',
+          minWidth: '220px',
+          maxWidth: '90vw',
+          boxShadow: '0 4px 24px 0 rgba(0,0,0,0.18)',
+          fontSize: '1.05em',
+          whiteSpace: 'pre-line',
+          textAlign: 'left',
+        }} onClick={e => e.stopPropagation()}>
+          {content}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div style={pageStyle}>
       <Analytics />
       {/* Header at the very top */}
       <div style={{ display: "flex", justifyContent: "center", marginBottom: "20px" }}>
         <div style={{ maxWidth: "1100px", width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <h1 style={{ fontFamily: "Cinzel", color: "#bfa76a" }}>Legendary Class Builder</h1>
+          <h1 style={{ fontFamily: "Cinzel", color: gold }}>Legendary Class Builder</h1>
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-            {lastUpdated && <span style={{ color: "#aaa", fontSize: "0.95rem" }}>Last refresh: {lastUpdated}</span>}
+            <button
+              onClick={toggleTheme}
+              style={{
+                background: theme === 'dark' ? '#222' : '#e5e5e5',
+                color: theme === 'dark' ? '#f5f5f5' : '#222',
+                border: `1px solid ${goldBorder}`,
+                borderRadius: 8,
+                padding: '6px 16px',
+                fontSize: '1em',
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                transition: 'background 0.2s, color 0.2s',
+              }}
+              aria-label="Toggle light/dark mode"
+            >
+              {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+            </button>
+            {lastUpdated && <span style={{ color: theme === 'dark' ? "#aaa" : "#444", fontSize: "0.95rem" }}>Last refresh: {lastUpdated}</span>}
           </div>
         </div>
       </div>
       {/* Race Selection Panel */}
       <div style={{ display: "flex", justifyContent: "center", marginBottom: "16px" }}>
-        <div style={{ maxWidth: "1100px", width: "100%", backgroundColor: "#1e293b", padding: "10px 20px", borderRadius: "8px", borderLeft: "4px solid #bfa76a", borderTop: "1px solid #334155", borderRight: "1px solid #334155", marginBottom: 0 }}>
+        <div style={{
+          maxWidth: "1100px",
+          width: "100%",
+          backgroundColor: theme === 'dark' ? "#1e293b" : "#e3ecfa",
+          padding: "10px 20px",
+          borderRadius: "8px",
+          borderLeft: `4px solid ${goldBorder}`,
+          borderTop: "1px solid #334155",
+          borderRight: "1px solid #334155",
+          marginBottom: 0
+        }}>
           <h2 style={{ margin: "0 0 10px 0" }}>Race Selection</h2>
           <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
             {uniqueRaces.map(race => (
@@ -443,10 +525,10 @@ export default function App() {
                   return {
                     margin: "5px",
                     padding: "10px 14px",
-                    border: `1px solid ${isSelected ? "#bfa76a" : "#334155"}`,
+                    border: `1px solid ${isSelected ? goldBorder : "#334155"}`,
                     borderRadius: "12px",
                     background: isSelected ? "#2a663d" : "#1e293b",
-                    color: isSelected ? "#bfa76a" : "#f5f5f5",
+                    color: isSelected ? gold : "#f5f5f5",
                     fontWeight: isSelected ? 700 : 400,
                     fontFamily: "Inter, sans-serif",
                     fontSize: "1rem",
@@ -470,7 +552,7 @@ export default function App() {
           style={{
             maxWidth: "1100px",
             width: "100%",
-            backgroundColor: "#1e293b",
+            backgroundColor: theme === 'dark' ? "#1e293b" : "#e3ecfa",
             padding: "5px 20px",
             borderRadius: "8px",
             borderLeft: "4px solid #bfa76a",
@@ -482,8 +564,8 @@ export default function App() {
                 to bottom,
                 transparent,
                 transparent 7px,
-                #bfa76a 7px,
-                #bfa76a 9px,
+                ${gold} 7px,
+                ${gold} 9px,
                 transparent 9px,
                 transparent 16px
               ),
@@ -491,8 +573,8 @@ export default function App() {
                 to right,
                 transparent,
                 transparent 7px,
-                #bfa76a 7px,
-                #bfa76a 9px,
+                ${gold} 7px,
+                ${gold} 9px,
                 transparent 9px,
                 transparent 16px
               )
@@ -508,13 +590,13 @@ export default function App() {
             <input
               type="range"
               min="1"
-              max="60"
+              max="50"
               value={selectedLevel}
               onChange={(e) => setSelectedLevel(Number(e.target.value))}
               style={{ width: '150px' }}
             />
           </div>
-          <h2>Class Selection (Limit 3)</h2>
+          <h2>Class Selection <span style={{ fontSize: '0.8em', fontWeight: 400, color: gold }}>(Pick 3)</span></h2>
           <div>
             {(() => {
               if (!classes || !classInfo) return null;
@@ -535,7 +617,7 @@ export default function App() {
               const bucketBlock = (bucket, label) => (
                 buckets[bucket]?.length ? (
                   <div key={bucket} style={{ minWidth: "180px", marginBottom: "0" }}>
-                    <div style={{ fontWeight: 600, color: "#bfa76a", margin: "4px 0 2px 0" }}>{label}</div>
+                    <div style={{ fontWeight: 600, color: gold, margin: "4px 0 2px 0" }}>{label}</div>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
                       {buckets[bucket].sort().map(cls => (
                         <button
@@ -566,6 +648,75 @@ export default function App() {
               );
             })()}
           </div>
+        </div>
+      </div>
+
+      {/* Overview Panel moved here */}
+      <div className="overview-panel-wrapper" style={{ display: 'flex', justifyContent: 'center', width: '100%', marginTop: 32, marginBottom: 32 }}>
+        <div className="overview-panel" style={{ minWidth: 320, maxWidth: 480, width: '100%', background: theme === 'dark' ? '#1e293b' : '#e3ecfa', borderRadius: 12, boxShadow: '0 2px 12px 0 rgba(0,0,0,0.08)', padding: 24, border: `1px solid ${goldBorder}` }}>
+          <h2>Overview</h2>
+          {(() => {
+            if (!selected || selected.length === 0) {
+              return <p>No classes selected.</p>;
+            }
+            // Define the categories to show
+            const categories = [
+              "Durability",
+              "Melee Damage",
+              "Spell Damage",
+              "Sustainability",
+              "Utility",
+              "Crowd Control"
+            ];
+            // Sum values for each category
+            const sums = {};
+            selected.forEach(cls => {
+              const info = classInfo[cls];
+              if (!info) return;
+              categories.forEach(cat => {
+                const val = Number(info[cat]) || 0;
+                if (!sums[cat]) sums[cat] = 0;
+                sums[cat] += val;
+              });
+            });
+            return (
+              <div style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
+                <table style={{ maxWidth: 400, margin: '12px 0', borderCollapse: 'collapse', color: theme === 'dark' ? '#f5f5f5' : '#222' }}>
+                  <thead>
+                    <tr>
+                      <th style={{ textAlign: 'right', padding: '4px 8px', borderBottom: '1px solid #334155' }}>Category</th>
+                      <th style={{ textAlign: 'center', padding: '4px 8px', borderBottom: '1px solid #334155' }}>Stars</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {categories.map(cat => {
+                      const value = sums[cat] || 0;
+                      let stars = 0;
+                      if (value >= 13) stars = 5;
+                      else if (value >= 10) stars = 4;
+                      else if (value >= 7) stars = 3;
+                      else if (value >= 4) stars = 2;
+                      else if (value >= 1) stars = 1;
+                      else stars = 0;
+                      return (
+                        <tr key={cat}>
+                          <td style={{ padding: '4px 8px', textAlign: 'right', minWidth: 120 }}>{cat}</td>
+                          <td style={{ padding: '4px 8px', textAlign: 'center', fontSize: '1.1em', minWidth: 120 }}>
+                            {Array.from({ length: stars }).map((_, i) => (
+                              <span key={i} style={{ color: gold, marginRight: 1 }}>★</span>
+                            ))}
+                            {Array.from({ length: 5 - stars }).map((_, i) => (
+                              <span key={i} style={{ color: '#444', marginRight: 1 }}>☆</span>
+                            ))}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            );
+          })()}
         </div>
       </div>
 
@@ -629,7 +780,12 @@ export default function App() {
             ))}
           </div>
           <div className="spell-inclusion-panel" style={{ maxWidth: '620px', width: '100%' }}>
-            <h2>Spell Inclusion <span style={{ fontSize: '0.8em', fontWeight: 400, color: '#bfa76a' }}>(Mouseover for details)</span></h2>
+            <h2>
+              Spell Inclusion{' '}
+              <span style={{ fontSize: '0.8em', fontWeight: 400, color: gold }}>
+                {isTouchDevice() ? '(Tap for details)' : '(Mouseover for details)'}
+              </span>
+            </h2>
             <div
               className="spell-inclusion-grid"
               style={{
@@ -654,23 +810,33 @@ export default function App() {
                 const cellLabel = cell.detail.SpellTypeGroup || cell.typeName;
                 // Highlight green if spells are present
                 const isHighlighted = cell.included;
+                // On touch devices, show modal on tap; on desktop, use title
+                const handleCellClick = () => {
+                  if (isTouchDevice()) {
+                    setModalTooltip(tooltip);
+                    setModalOpen(true);
+                  }
+                };
                 return (
                   <div
                     key={i}
                     style={{
                       padding: "10px",
                       minHeight: "60px",
-                      background: isHighlighted ? "#2a663d" : "#1e293b",
-                      color: "#f5f5f5",
+                      background: theme === 'dark'
+                        ? (isHighlighted ? "#2a663d" : "#1e293b")
+                        : (isHighlighted ? "#b3d0f7" : "#e3ecfa"),
+                      color: theme === 'dark' ? "#f5f5f5" : "#222",
                       display: "flex",
                       flexDirection: "column",
                       justifyContent: "center",
                       alignItems: "center",
                       borderRadius: "6px",
-                      border: isHighlighted ? "1px solid #3c8f64" : "1px solid #334155",
+                      border: isHighlighted ? "1px solid #3c8f64" : "1px solid #b3c2d6",
                       cursor: isHighlighted ? "pointer" : "default"
                     }}
-                    title={tooltip}
+                    title={!isTouchDevice() ? tooltip : undefined}
+                    onClick={handleCellClick}
                   >
                     <div style={{ fontSize: "0.95rem", textAlign: "center", lineHeight: 1.1 }}>
                       {cellLabel}
@@ -678,17 +844,14 @@ export default function App() {
                   </div>
                 );
               })}
+              {/* Tooltip Modal for mobile/touch */}
+              <TooltipModal open={modalOpen} content={modalTooltip} onClose={() => setModalOpen(false)} />
             </div>
           </div>
         </div>
       </div>
 
-      <div className="overview-panel-wrapper">
-        <div className="overview-panel">
-          <h2>Overview</h2>
-          <p>Overview details will be defined later.</p>
-        </div>
-      </div>
+      {/* Overview Panel moved here */}
 
       <footer style={{ width: '100%', textAlign: 'center', color: '#bfa76a', fontSize: '1rem', margin: '32px 0 8px 0', letterSpacing: '0.5px' }}>
         Development by Shnate.

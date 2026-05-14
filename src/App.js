@@ -868,7 +868,48 @@ export default function App() {
               <TooltipModal open={modalOpen} content={modalTooltip} onClose={() => setModalOpen(false)} />
             </div>
           </div>
-        </div>
+            {/* FAQ Panel */}
+            <div style={{ width: '100%', display: 'flex', justifyContent: 'center', marginTop: 32 }}>
+              <div className="faq-panel" style={{ maxWidth: '620px', width: '100%', marginTop: 32, background: theme === 'dark' ? '#1e293b' : '#e3ecfa', borderRadius: 12, boxShadow: '0 2px 12px 0 rgba(0,0,0,0.08)', padding: 24, border: `1px solid ${goldBorder}` }}>
+                <h2 style={{ color: gold, marginBottom: 16 }}>FAQ</h2>
+                {[
+                  {
+                    q: 'What is EverQuest Legends?',
+                    a: 'It is an upcoming retro MMORPG based on the EverQuest franchise focused on solo and small group play with multi class options.'
+                  },
+                  {
+                    q: 'What is the purpose of this app?',
+                    a: 'This app helps you build and analyze custom class combinations for EverQuest Legends, showing skills, spells, and overall strengths.'
+                  },
+                  {
+                    q: 'How do I select classes?',
+                    a: 'Click on up to three classes. You can start with a race if you would like to see race/class limitations to start. The overview, skill, and spell inclusion panels will update automatically.'
+                  },
+                  {
+                    q: 'What is the level slider?',
+                    a: 'The level slider allows you to adjust the level of your selected classes, which will update the skill, and spell inclusion panels accordingly.'
+                  },                  
+                  {
+                    q: 'What do the stars mean in the overview?',
+                    a: 'Stars represent the combined strength of your selected classes in each category, with 5 stars being the highest.'
+                  },
+                  {
+                    q: 'How is the score calculated?',
+                    a: 'The score is the total number of stars across all categories for your current selection.'
+                  },
+                  {
+                    q: 'Can I see spell details?',
+                    a: 'Yes, hover or tap on a spell group in the Spell Inclusion panel to see the top spells available. Be advised this is heavily subject to change as the data is not a live spell file and many changes are expected in EQL.'
+                  }
+                ].map((item, idx) => (
+                  <details key={idx} style={{ marginBottom: 12, background: theme === 'dark' ? '#22304a' : '#f7f7f7', borderRadius: 8, padding: '8px 12px', border: '1px solid #334155' }}>
+                    <summary style={{ cursor: 'pointer', fontWeight: 600, color: gold }}>{item.q}</summary>
+                    <div style={{ marginTop: 6, color: theme === 'dark' ? '#f5f5f5' : '#222', fontWeight: 400 }}>{item.a}</div>
+                  </details>
+                ))}
+              </div>
+            </div>  
+        </div>    
       </div>
 
       {/* Overview Panel moved here */}
